@@ -3,6 +3,9 @@ const {
   subtraction,
   multiplication,
   division,
+  modulo,
+  power,
+  squareRoot,
   calculate,
   normalizeOperation,
   parseNumber,
@@ -47,6 +50,40 @@ describe("calculator arithmetic edge cases", () => {
   test("throws on division by zero", () => {
     expect(() => division(20, 0)).toThrow("Division by zero is not allowed.");
   });
+
+  test("returns the remainder for modulo", () => {
+    expect(modulo(10, 3)).toBe(1);
+  });
+
+  test("throws on modulo by zero", () => {
+    expect(() => modulo(10, 0)).toThrow("Modulo by zero is not allowed.");
+  });
+
+  test("raises a base to an exponent", () => {
+    expect(power(2, 4)).toBe(16);
+  });
+
+  test("computes a square root", () => {
+    expect(squareRoot(81)).toBe(9);
+  });
+
+  test("throws for square root of a negative number", () => {
+    expect(() => squareRoot(-1)).toThrow("Square root of a negative number is not allowed.");
+  });
+});
+
+describe("calculator extended operations examples", () => {
+  test("computes modulo from the example with 5 % 2", () => {
+    expect(modulo(5, 2)).toBe(1);
+  });
+
+  test("computes power from the example with 2 ^ 3", () => {
+    expect(power(2, 3)).toBe(8);
+  });
+
+  test("computes square root from the example with sqrt(16)", () => {
+    expect(squareRoot(16)).toBe(4);
+  });
 });
 
 describe("normalizeOperation", () => {
@@ -60,13 +97,21 @@ describe("normalizeOperation", () => {
     ["x", "multiplication"],
     ["/", "division"],
     ["divide", "division"],
+    ["%", "modulo"],
+    ["mod", "modulo"],
+    ["power", "power"],
+    ["pow", "power"],
+    ["^", "power"],
+    ["sqrt", "squareRoot"],
+    ["square root", "squareRoot"],
+    ["square-root", "squareRoot"],
   ])('normalizes "%s" to "%s"', (input, expected) => {
     expect(normalizeOperation(input)).toBe(expected);
   });
 
   test("throws for an unsupported operation", () => {
-    expect(() => normalizeOperation("power")).toThrow(
-      'Unsupported operation "power". Use addition, subtraction, multiplication, or division.'
+    expect(() => normalizeOperation("unknown")).toThrow(
+      'Unsupported operation "unknown". Use addition, subtraction, multiplication, division, modulo, power, square root.'
     );
   });
 });
@@ -104,13 +149,47 @@ describe("calculate", () => {
     expect(calculate("division", 8, 2)).toBe(4);
   });
 
+  test("dispatches modulo aliases", () => {
+    expect(calculate("%", 10, 3)).toBe(1);
+  });
+
+  test("dispatches the modulo example from the image", () => {
+    expect(calculate("%", 5, 2)).toBe(1);
+  });
+
+  test("dispatches power aliases", () => {
+    expect(calculate("^", 2, 4)).toBe(16);
+  });
+
+  test("dispatches the power example from the image", () => {
+    expect(calculate("^", 2, 3)).toBe(8);
+  });
+
+  test("dispatches square root aliases", () => {
+    expect(calculate("sqrt", 81)).toBe(9);
+  });
+
+  test("dispatches the square root example from the image", () => {
+    expect(calculate("sqrt", 16)).toBe(4);
+  });
+
   test("surfaces division by zero errors", () => {
     expect(() => calculate("/", 8, 0)).toThrow("Division by zero is not allowed.");
   });
 
+  test("surfaces modulo by zero errors", () => {
+    expect(() => calculate("%", 8, 0)).toThrow("Modulo by zero is not allowed.");
+  });
+
+  test("surfaces square root errors", () => {
+    expect(() => calculate("sqrt", -4)).toThrow(
+      "Square root of a negative number is not allowed."
+    );
+  });
+
   test("throws for unsupported operations", () => {
-    expect(() => calculate("modulo", 8, 2)).toThrow(
-      'Unsupported operation "modulo". Use addition, subtraction, multiplication, or division.'
+    expect(() => calculate("unknown", 8, 2)).toThrow(
+      'Unsupported operation "unknown". Use addition, subtraction, multiplication, division, modulo, power, square root.'
     );
   });
 });
@@ -128,9 +207,53 @@ describe("runCli", () => {
     expect(logSpy).toHaveBeenCalledWith(5);
   });
 
+  test("prints the result for square root arguments", () => {
+    const logSpy = jest.spyOn(console, "log").mockImplementation(() => {});
+
+    runCli(["sqrt", "81"]);
+
+    expect(logSpy).toHaveBeenCalledWith(9);
+  });
+
+  test("prints the modulo example result from CLI arguments", () => {
+    const logSpy = jest.spyOn(console, "log").mockImplementation(() => {});
+
+    runCli(["%", "5", "2"]);
+
+    expect(logSpy).toHaveBeenCalledWith(1);
+  });
+
+  test("prints the power example result from CLI arguments", () => {
+    const logSpy = jest.spyOn(console, "log").mockImplementation(() => {});
+
+    runCli(["^", "2", "3"]);
+
+    expect(logSpy).toHaveBeenCalledWith(8);
+  });
+
+  test("prints the square root example result from CLI arguments", () => {
+    const logSpy = jest.spyOn(console, "log").mockImplementation(() => {});
+
+    runCli(["sqrt", "16"]);
+
+    expect(logSpy).toHaveBeenCalledWith(4);
+  });
+
   test("throws usage instructions when arguments are missing", () => {
+    expect(() => runCli(["+"])).toThrow(
+      "Usage: node src/calculator.js <operation> <firstNumber> [secondNumber]"
+    );
+  });
+
+  test("throws usage instructions when binary operations are missing the second number", () => {
     expect(() => runCli(["+", "2"])).toThrow(
-      "Usage: node src/calculator.js <operation> <firstNumber> <secondNumber>"
+      "Usage: node src/calculator.js <operation> <firstNumber> [secondNumber]"
+    );
+  });
+
+  test("throws usage instructions when square root receives too many arguments", () => {
+    expect(() => runCli(["sqrt", "81", "9"])).toThrow(
+      "Usage: node src/calculator.js <operation> <firstNumber> [secondNumber]"
     );
   });
 
@@ -148,5 +271,11 @@ describe("runCli", () => {
 
   test("throws for division by zero from CLI arguments", () => {
     expect(() => runCli(["/", "20", "0"])).toThrow("Division by zero is not allowed.");
+  });
+
+  test("throws for negative square root from CLI arguments", () => {
+    expect(() => runCli(["sqrt", "-9"])).toThrow(
+      "Square root of a negative number is not allowed."
+    );
   });
 });

@@ -6,6 +6,9 @@
  * - subtraction
  * - multiplication
  * - division
+ * - modulo
+ * - power
+ * - square root
  */
 
 function addition(a, b) {
@@ -28,6 +31,26 @@ function division(a, b) {
   return a / b;
 }
 
+function modulo(a, b) {
+  if (b === 0) {
+    throw new Error("Modulo by zero is not allowed.");
+  }
+
+  return a % b;
+}
+
+function power(base, exponent) {
+  return base ** exponent;
+}
+
+function squareRoot(n) {
+  if (n < 0) {
+    throw new Error("Square root of a negative number is not allowed.");
+  }
+
+  return Math.sqrt(n);
+}
+
 const OPERATION_ALIASES = Object.freeze({
   addition: "addition",
   add: "addition",
@@ -42,14 +65,35 @@ const OPERATION_ALIASES = Object.freeze({
   division: "division",
   divide: "division",
   "/": "division",
+  modulo: "modulo",
+  mod: "modulo",
+  "%": "modulo",
+  power: "power",
+  pow: "power",
+  exponentiation: "power",
+  "^": "power",
+  squareroot: "squareRoot",
+  "square root": "squareRoot",
+  "square-root": "squareRoot",
+  sqrt: "squareRoot",
 });
+
+const SUPPORTED_OPERATION_NAMES = Object.freeze([
+  "addition",
+  "subtraction",
+  "multiplication",
+  "division",
+  "modulo",
+  "power",
+  "square root",
+]);
 
 function normalizeOperation(operation) {
   const normalizedOperation = OPERATION_ALIASES[String(operation).toLowerCase()];
 
   if (!normalizedOperation) {
     throw new Error(
-      `Unsupported operation "${operation}". Use addition, subtraction, multiplication, or division.`
+      `Unsupported operation "${operation}". Use ${SUPPORTED_OPERATION_NAMES.join(", ")}.`
     );
   }
 
@@ -76,6 +120,12 @@ function calculate(operation, a, b) {
       return multiplication(a, b);
     case "division":
       return division(a, b);
+    case "modulo":
+      return modulo(a, b);
+    case "power":
+      return power(a, b);
+    case "squareRoot":
+      return squareRoot(a);
     default:
       throw new Error(`Unsupported operation "${operation}".`);
   }
@@ -83,21 +133,36 @@ function calculate(operation, a, b) {
 
 function formatUsage() {
   return [
-    "Usage: node src/calculator.js <operation> <firstNumber> <secondNumber>",
+    "Usage: node src/calculator.js <operation> <firstNumber> [secondNumber]",
     "",
-    "Supported operations: addition (+), subtraction (-), multiplication (*), division (/)",
+    "Supported operations: addition (+), subtraction (-), multiplication (*), division (/), modulo (%), power (^), square root (sqrt)",
   ].join("\n");
 }
 
 function runCli(args) {
-  if (args.length !== 3) {
+  if (args.length < 2 || args.length > 3) {
     throw new Error(formatUsage());
   }
 
   const [operation, firstValue, secondValue] = args;
+  const normalizedOperation = normalizeOperation(operation);
   const firstNumber = parseNumber(firstValue, "first number");
-  const secondNumber = parseNumber(secondValue, "second number");
-  const result = calculate(operation, firstNumber, secondNumber);
+  let result;
+
+  if (normalizedOperation === "squareRoot") {
+    if (args.length !== 2) {
+      throw new Error(formatUsage());
+    }
+
+    result = squareRoot(firstNumber);
+  } else {
+    if (args.length !== 3) {
+      throw new Error(formatUsage());
+    }
+
+    const secondNumber = parseNumber(secondValue, "second number");
+    result = calculate(normalizedOperation, firstNumber, secondNumber);
+  }
 
   console.log(result);
 }
@@ -116,6 +181,9 @@ module.exports = {
   subtraction,
   multiplication,
   division,
+  modulo,
+  power,
+  squareRoot,
   calculate,
   normalizeOperation,
   parseNumber,
